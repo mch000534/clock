@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>時鐘 · 日期 · 計時器 — Macau</title>
+    <!-- Bootstrap 5 核心 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 等寬字體 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap Icons (for nice buttons) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background-image: url('https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=1920&q=80');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-color: #c8d6e5;
+            transition: background-image 1s ease-in-out;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.50);
+            backdrop-filter: blur(3px);
+            z-index: 0;
+        }
+
+        .clock-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 1200px;
+            padding: 1.5rem 2rem;
+            text-align: center;
+            color: #1e293b;
+            background: rgba(255, 255, 255, 0.78);
+            backdrop-filter: blur(8px);
+            border-radius: 3rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.2);
+        }
+
+        .time-display {
+            font-size: clamp(4rem, 20vw, 12rem);
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            line-height: 1.1;
+            color: #0f172a;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.6);
+            margin-bottom: 0.1rem;
+        }
+
+        .date-display {
+            font-size: clamp(2rem, 8vw, 4.8rem);
+            font-weight: 400;
+            letter-spacing: 0.04em;
+            color: #1e293b;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            margin-top: 0.1rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .timezone-display {
+            font-size: clamp(1.4rem, 5vw, 3.2rem);
+            font-weight: 400;
+            color: #334155;
+            letter-spacing: 0.15em;
+            text-shadow: 0 0 16px rgba(255, 255, 255, 0.4);
+            margin-top: 0.2rem;
+            text-transform: uppercase;
+            opacity: 0.9;
+        }
+
+        /* 計時器區域 */
+        .timer-section {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .timer-display {
+            font-size: clamp(2.5rem, 10vw, 5.5rem);
+            font-weight: 600;
+            color: #0f172a;
+            letter-spacing: 0.06em;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+            margin-bottom: 0.75rem;
+        }
+
+        .timer-controls {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 0.75rem;
+        }
+
+        .timer-controls .btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            padding: 0.5rem 1.5rem;
+            border-radius: 2rem;
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
+            transition: all 0.2s ease;
+            border: none;
+        }
+
+        .timer-controls .btn-outline-dark {
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .timer-controls .btn-outline-dark:hover {
+            background: #0f172a;
+            color: white;
+        }
+
+        .timer-controls .btn-success {
+            background: #0f172a;
+            color: white;
+        }
+
+        .timer-controls .btn-success:hover {
+            background: #1e293b;
+            transform: scale(1.02);
+        }
+
+        .timer-controls .btn-danger {
+            background: #dc2626;
+            color: white;
+        }
+
+        .timer-controls .btn-danger:hover {
+            background: #b91c1c;
+            transform: scale(1.02);
+        }
+
+        .timer-controls .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .timer-controls .btn-warning:hover {
+            background: #d97706;
+            transform: scale(1.02);
+        }
+
+        /* 計時器輸入 */
+        .timer-input-group {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 0.5rem;
+        }
+
+        .timer-input-group input {
+            width: 70px;
+            padding: 0.4rem 0.2rem;
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.2rem;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-radius: 0.75rem;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(4px);
+            color: #0f172a;
+            font-weight: 600;
+            transition: border-color 0.2s;
+        }
+
+        .timer-input-group input:focus {
+            outline: none;
+            border-color: #0f172a;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .timer-input-group label {
+            font-size: 1rem;
+            color: #475569;
+            align-self: center;
+            font-weight: 400;
+        }
+
+        .timer-status {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin-top: 0.3rem;
+        }
+
+        @media (max-width: 576px) {
+            .clock-container {
+                padding: 1rem 1rem;
+                border-radius: 2rem;
+                margin: 0 0.5rem;
+            }
+            .timer-input-group input {
+                width: 55px;
+                font-size: 1rem;
+            }
+            .timer-controls .btn {
+                padding: 0.4rem 1rem;
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (min-width: 1600px) {
+            .clock-container {
+                max-width: 1400px;
+            }
+        }
+
+        .weather-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-size: 0.85rem;
+            color: #475569;
+            background: rgba(255, 255, 255, 0.75);
+            padding: 6px 16px;
+            border-radius: 20px;
+            z-index: 2;
+            backdrop-filter: blur(4px);
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 400;
+        }
+    </style>
+</head>
+<body>
+    <div class="clock-container">
+        <!-- 時鐘 -->
+        <div class="time-display" id="timeDisplay">--:--:--</div>
+        <div class="date-display" id="dateDisplay">---- -- -- ---</div>
+        <div class="timezone-display" id="timezoneDisplay">Macau</div>
+
+        <!-- 計時器 -->
+        <div class="timer-section">
+            <div class="timer-display" id="timerDisplay">00:00:00</div>
+
+            <!-- 輸入設定 -->
+            <div class="timer-input-group">
+                <input type="number" id="timerHours" min="0" max="99" value="0" placeholder="時">
+                <label>:</label>
+                <input type="number" id="timerMinutes" min="0" max="59" value="5" placeholder="分">
+                <label>:</label>
+                <input type="number" id="timerSeconds" min="0" max="59" value="0" placeholder="秒">
+            </div>
+
+            <!-- 控制按鈕 -->
+            <div class="timer-controls">
+                <button class="btn btn-success" id="timerStartBtn"><i class="bi bi-play-fill"></i> 開始</button>
+                <button class="btn btn-warning" id="timerPauseBtn"><i class="bi bi-pause-fill"></i> 暫停</button>
+                <button class="btn btn-danger" id="timerResetBtn"><i class="bi bi-arrow-counterclockwise"></i> 重置</button>
+            </div>
+
+            <div class="timer-status" id="timerStatus">⏱️ 就緒</div>
+        </div>
+    </div>
+
+    <div class="weather-status" id="weatherStatus">🌤 載入天氣中...</div>
+
+    <script>
+        (function() {
+            // ========== 時鐘功能 ==========
+            const timeEl = document.getElementById('timeDisplay');
+            const dateEl = document.getElementById('dateDisplay');
+            const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+            function updateClock() {
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                timeEl.textContent = `${hours}:${minutes}:${seconds}`;
+
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const weekDay = weekDays[now.getDay()];
+                dateEl.textContent = `${year}-${month}-${day} ${weekDay}`;
+            }
+
+            updateClock();
+            setInterval(updateClock, 1000);
+
+            // ========== 計時器功能 ==========
+            const timerDisplay = document.getElementById('timerDisplay');
+            const timerHours = document.getElementById('timerHours');
+            const timerMinutes = document.getElementById('timerMinutes');
+            const timerSeconds = document.getElementById('timerSeconds');
+            const timerStatus = document.getElementById('timerStatus');
+
+            const startBtn = document.getElementById('timerStartBtn');
+            const pauseBtn = document.getElementById('timerPauseBtn');
+            const resetBtn = document.getElementById('timerResetBtn');
+
+            let timerInterval = null;
+            let remainingSeconds = 0;
+            let totalSeconds = 0;
+            let isRunning = false;
+            let isPaused = false;
+
+            // 從輸入取得總秒數
+            function getInputTotalSeconds() {
+                const h = parseInt(timerHours.value) || 0;
+                const m = parseInt(timerMinutes.value) || 0;
+                const s = parseInt(timerSeconds.value) || 0;
+                return h * 3600 + m * 60 + s;
+            }
+
+            // 更新輸入框的值（從剩餘秒數）
+            function updateInputsFromRemaining() {
+                const h = Math.floor(remainingSeconds / 3600);
+                const m = Math.floor((remainingSeconds % 3600) / 60);
+                const s = remainingSeconds % 60;
+                timerHours.value = h;
+                timerMinutes.value = m;
+                timerSeconds.value = s;
+            }
+
+            // 格式化時間顯示 HH:MM:SS
+            function formatTime(sec) {
+                const h = Math.floor(sec / 3600);
+                const m = Math.floor((sec % 3600) / 60);
+                const s = sec % 60;
+                return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            }
+
+            // 更新計時器顯示
+            function updateTimerDisplay() {
+                timerDisplay.textContent = formatTime(remainingSeconds);
+            }
+
+            // 啟用/停用輸入框
+            function setInputsEnabled(enabled) {
+                timerHours.disabled = !enabled;
+                timerMinutes.disabled = !enabled;
+                timerSeconds.disabled = !enabled;
+            }
+
+            // 計時器滴答
+            function tick() {
+                if (remainingSeconds > 0) {
+                    remainingSeconds--;
+                    updateTimerDisplay();
+                    updateInputsFromRemaining();
+
+                    if (remainingSeconds === 0) {
+                        clearInterval(timerInterval);
+                        timerInterval = null;
+                        isRunning = false;
+                        isPaused = false;
+                        setInputsEnabled(true);
+                        timerStatus.textContent = '⏰ 時間到！';
+                        timerDisplay.style.color = '#dc2626';
+                        // 簡單提示音效（可選）
+                        setTimeout(() => {
+                            timerDisplay.style.color = '#0f172a';
+                        }, 3000);
+                    }
+                } else {
+                    // 如果剩餘時間為0，停止計時
+                    if (timerInterval) {
+                        clearInterval(timerInterval);
+                        timerInterval = null;
+                        isRunning = false;
+                        isPaused = false;
+                        setInputsEnabled(true);
+                        timerStatus.textContent = '⏰ 時間到！';
+                    }
+                }
+            }
+
+            // 開始計時
+            function startTimer() {
+                if (isRunning) {
+                    timerStatus.textContent = '⏱️ 計時器已在運行中';
+                    return;
+                }
+
+                // 如果剩餘時間為0，從輸入重新載入
+                if (remainingSeconds === 0) {
+                    const total = getInputTotalSeconds();
+                    if (total === 0) {
+                        timerStatus.textContent = '⚠️ 請設定有效的時間';
+                        return;
+                    }
+                    remainingSeconds = total;
+                    totalSeconds = total;
+                    updateTimerDisplay();
+                    updateInputsFromRemaining();
+                }
+
+                setInputsEnabled(false);
+                isRunning = true;
+                isPaused = false;
+                timerStatus.textContent = '▶️ 計時中...';
+                timerDisplay.style.color = '#0f172a';
+
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                }
+                timerInterval = setInterval(tick, 1000);
+            }
+
+            // 暫停計時
+            function pauseTimer() {
+                if (!isRunning) {
+                    timerStatus.textContent = '⏸️ 計時器未在運行';
+                    return;
+                }
+                if (isPaused) {
+                    timerStatus.textContent = '⏸️ 已暫停';
+                    return;
+                }
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                    isPaused = true;
+                    isRunning = true; // 仍保持運行狀態但暫停
+                    setInputsEnabled(false);
+                    timerStatus.textContent = '⏸️ 已暫停';
+                }
+            }
+
+            // 重置計時器
+            function resetTimer() {
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                }
+                isRunning = false;
+                isPaused = false;
+                setInputsEnabled(true);
+                timerDisplay.style.color = '#0f172a';
+
+                // 從輸入重新載入
+                const total = getInputTotalSeconds();
+                remainingSeconds = total;
+                totalSeconds = total;
+                updateTimerDisplay();
+                updateInputsFromRemaining();
+                timerStatus.textContent = '🔄 已重置';
+            }
+
+            // 當輸入變更時，更新剩餘時間
+            function onInputChange() {
+                if (isRunning) return; // 運行中不允許變更
+                const total = getInputTotalSeconds();
+                remainingSeconds = total;
+                totalSeconds = total;
+                updateTimerDisplay();
+                timerStatus.textContent = '⏱️ 就緒';
+                timerDisplay.style.color = '#0f172a';
+            }
+
+            // 綁定事件
+            startBtn.addEventListener('click', startTimer);
+            pauseBtn.addEventListener('click', pauseTimer);
+            resetBtn.addEventListener('click', resetTimer);
+
+            timerHours.addEventListener('change', onInputChange);
+            timerMinutes.addEventListener('change', onInputChange);
+            timerSeconds.addEventListener('change', onInputChange);
+
+            timerHours.addEventListener('input', onInputChange);
+            timerMinutes.addEventListener('input', onInputChange);
+            timerSeconds.addEventListener('input', onInputChange);
+
+            // 初始化
+            onInputChange();
+
+            // 鍵盤快捷鍵（可選）
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && e.ctrlKey) {
+                    startTimer();
+                } else if (e.key === ' ' && e.target.tagName !== 'INPUT') {
+                    e.preventDefault();
+                    if (isRunning && !isPaused) {
+                        pauseTimer();
+                    } else if (isRunning && isPaused) {
+                        startTimer();
+                    } else {
+                        startTimer();
+                    }
+                } else if (e.key === 'r' && e.ctrlKey) {
+                    e.preventDefault();
+                    resetTimer();
+                }
+            });
+
+            // ========== 從 data.gov.mo 取得澳門天氣 ==========
+            const weatherStatus = document.getElementById('weatherStatus');
+            const API_URL = 'https://api.data.gov.mo/v2/weather/current';
+
+            const weatherBackgrounds = {
+                '晴朗': 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1920&q=80',
+                '天晴': 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1920&q=80',
+                '多雲': 'https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=1920&q=80',
+                '密雲': 'https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=1920&q=80',
+                '降雨': 'https://images.unsplash.com/photo-1519692933481-e162a57d6721?w=1920&q=80',
+                '驟雨': 'https://images.unsplash.com/photo-1519692933481-e162a57d6721?w=1920&q=80',
+                '雷暴': 'https://images.unsplash.com/photo-1605727216801-e27ce1d0cc28?w=1920&q=80',
+                '霧': 'https://images.unsplash.com/photo-1487621167305-5d248087c724?w=1920&q=80',
+                '有霧': 'https://images.unsplash.com/photo-1487621167305-5d248087c724?w=1920&q=80',
+                'default': 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=1920&q=80'
+            };
+
+            const weatherEmojis = {
+                '晴朗': '☀️',
+                '天晴': '☀️',
+                '多雲': '⛅',
+                '密雲': '☁️',
+                '降雨': '🌧️',
+                '驟雨': '🌦️',
+                '雷暴': '⛈️',
+                '霧': '🌫️',
+                '有霧': '🌫️',
+                'default': '🌤️'
+            };
+
+            function updateWeatherBackground(weatherText) {
+                let bgUrl = weatherBackgrounds['default'];
+                let emoji = weatherEmojis['default'];
+                let matched = false;
+
+                for (const [key, url] of Object.entries(weatherBackgrounds)) {
+                    if (key === 'default') continue;
+                    if (weatherText.includes(key)) {
+                        bgUrl = url;
+                        emoji = weatherEmojis[key] || '🌤️';
+                        matched = true;
+                        break;
+                    }
+                }
+
+                if (!matched) {
+                    if (weatherText.includes('雨') || weatherText.includes('Rain')) {
+                        bgUrl = weatherBackgrounds['降雨'];
+                        emoji = '🌧️';
+                    } else if (weatherText.includes('雲') || weatherText.includes('Cloud')) {
+                        bgUrl = weatherBackgrounds['多雲'];
+                        emoji = '⛅';
+                    } else if (weatherText.includes('晴') || weatherText.includes('Sun')) {
+                        bgUrl = weatherBackgrounds['晴朗'];
+                        emoji = '☀️';
+                    } else if (weatherText.includes('霧') || weatherText.includes('Fog')) {
+                        bgUrl = weatherBackgrounds['霧'];
+                        emoji = '🌫️';
+                    }
+                }
+
+                document.body.style.backgroundImage = `url('${bgUrl}')`;
+                weatherStatus.textContent = `${emoji} ${weatherText} · 澳門`;
+            }
+
+            async function fetchMacauWeather() {
+                try {
+                    weatherStatus.textContent = '⏳ 載入天氣中...';
+                    const response = await fetch(API_URL);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    let weatherDesc = '';
+                    if (data && data.result && data.result.records && data.result.records.length > 0) {
+                        weatherDesc = data.result.records[0].weather_desc || '';
+                    } else if (data && data.records && data.records.length > 0) {
+                        weatherDesc = data.records[0].weather_desc || '';
+                    } else {
+                        weatherDesc = data.weather_desc || data.weather || '多雲';
+                    }
+
+                    if (weatherDesc) {
+                        const mainWeather = weatherDesc.split(/[,，、]/)[0].trim();
+                        updateWeatherBackground(mainWeather || weatherDesc);
+                    } else {
+                        throw new Error('無法解析天氣資料');
+                    }
+                } catch (error) {
+                    console.error('取得天氣失敗:', error);
+                    weatherStatus.textContent = '🌤 澳門 · 使用預設背景';
+                }
+            }
+
+            fetchMacauWeather();
+            setInterval(fetchMacauWeather, 30 * 60 * 1000);
+        })();
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
